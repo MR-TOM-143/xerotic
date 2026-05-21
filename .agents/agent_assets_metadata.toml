@@ -1,0 +1,20 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "Pphqj5xIhwWOgPVtAHdFa"
+uri = "file://fb-id-manager-full.tar.gz"
+type = "unspecified"
+title = "FB ID Manager Pro — Full Source Code (tar.gz)"
+
+[[outputs]]
+id = "MrxfmTIozeY5znKUg8I2h"
+uri = "file://fb-uid-manager-pro.tar.gz"
+type = "unspecified"
+title = "FB UID Manager Pro — Full Source Package"
+
+[[outputs]]
+id = "cRtDOfwKM_n3swL60kMRm"
+uri = "file://fb-uid-manager-AI-STUDIO.txt"
+type = "text"
+title = "FB UID Manager Pro — AI Studio Complete Source"
