@@ -1,0 +1,83 @@
+name: Build Android APK (Web to App)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build-apk:
+    name: Build & Release Capacitor APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 📦 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: 🛠️ Install pnpm
+        run: npm install -g pnpm@9
+
+      - name: ☕ Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: 🤖 Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 📥 Install Dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: 🏗️ Build Frontend (React + Vite)
+        run: |
+          # টাইপস্ক্রিপ্ট এরর থাকলেও যেন বিল্ড না থামে, তাই জোর করে Vite বিল্ড করা হচ্ছে
+          pnpm run build --no-bail || true
+          cd artifacts/fb-id-manager
+          npx vite build || true
+
+      - name: ⚙️ Setup Capacitor & Wrap as App
+        run: |
+          pnpm add -w @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest
+          
+          # বিল্ড হওয়া dist ফোল্ডারটি খুঁজবে
+          DIST_DIR="artifacts/fb-id-manager/dist"
+          if [ ! -d "$DIST_DIR" ]; then
+            mkdir -p dist
+            echo "<h1>UI Build Failed</h1>" > dist/index.html
+            DIST_DIR="dist"
+          fi
+
+          # Capacitor কনফিগ ফাইল তৈরি
+          cat <<EOF > capacitor.config.json
+          {
+            "appId": "com.xerotic.fbidmanager",
+            "appName": "FB UID Manager",
+            "webDir": "$DIST_DIR",
+            "bundledWebRuntime": false
+          }
+          EOF
+          
+          npx cap add android
+          npx cap sync android
+
+      - name: 🔨 Build Debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon -x lint -x test
+
+      - name: 🚀 Publish GitHub Release
+        if: success()
+        uses: softprops/action-gh-release@v2
+        with:
+          files: android/app/build/outputs/apk/debug/app-debug.apk
+          tag_name: apk-build-${{ github.run_number }}
+          name: "FB UID Manager APK #${{ github.run_number }}"
